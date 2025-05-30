@@ -1,6 +1,9 @@
 package main
 
 import (
+	"path"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"golang.org/x/crypto/ssh"
@@ -27,5 +30,24 @@ func FuzzSshParseKnownHosts(f *testing.F) {
 
 	f.Fuzz(func(t *testing.T, key string) {
 		ssh.ParseKnownHosts([]byte(key))
+	})
+}
+
+func FuzzDir(f *testing.F) {
+	f.Add("foo/bar")
+	f.Add("../foo/bar")
+	f.Add("//../foo/bar")
+	f.Add("//")
+
+	f.Fuzz(func(t *testing.T, p string) {
+		x := path.Join("/", p)
+		x = path.Join("/var/lib/git", x)
+		abs, err := filepath.Abs(x)
+		if err != nil {
+			t.Fatal("error getting absolute path:", err)
+		}
+		if !strings.HasPrefix(abs, "/var/lib/git") {
+			t.Fatal("path does not contain expected prefix:", abs)
+		}
 	})
 }
